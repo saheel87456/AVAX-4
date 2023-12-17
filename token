@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
+contract Token is ERC20, Ownable, ERC20Burnable {
+    event LogMessage(string message);
+
+    struct Gadget {
+        string gadgetName;
+        uint256 gadgetPrice;
+        uint256 gadgetLoad;
+    }
+
+    mapping(string => Gadget) public gadgets;
+
+    constructor() ERC20("Degen", "DGN") Ownable(msg.sender) {
+      
+    }
+
+    function mintTokens(address account, uint256 load) public onlyOwner {
+        _mint(account, load);
+    }
+
+    function burnTokens(uint256 load) public payable {
+        require(balanceOf(msg.sender) >= load, "Insufficient funds for burning tokens");
+        _burn(msg.sender, load);
+        emit LogMessage("Tokens burned successfully");
+    }
+
+    function transferTokens(address recipient, uint256 load) external {
+        require(balanceOf(msg.sender) >= load, "Insufficient funds for transferring tokens");
+        _transfer(msg.sender, recipient, load);
+    }
+
+    function redeemGadget(string memory gadgetName, uint256 load) external payable {
+        require(bytes(gadgetName).length > 0, "Gadget name cannot be empty");
+        require(load > 0, "Load must be greater than zero");
+
+        // Initialize Monitor, Drone, AugmentedReality, and iPad gadgets with constant load
+        if (gadgets["Monitor"].gadgetPrice == 0) {
+            gadgets["Monitor"] = Gadget("Monitor", 50, 10);
+        }
+
+        if (gadgets["Drone"].gadgetPrice == 0) {
+            gadgets["Drone"] = Gadget("Drone", 500, 15);
+        }
+
+        if (gadgets["AugmentedReality"].gadgetPrice == 0) {
+            gadgets["AugmentedReality"] = Gadget("AugmentedReality", 300, 20);
+        }
+
+        if (gadgets["iPad"].gadgetPrice == 0) {
+            gadgets["iPad"] = Gadget("iPad",800, 25);
+        }
+
+        Gadget storage gadget = gadgets[gadgetName];
+
+        require(balanceOf(msg.sender) >= gadget.gadgetPrice * load, "Insufficient funds for redeeming gadget");
+        require(gadget.gadgetLoad >= load, "Insufficient gadget load for redemption");
+
+        uint256 totalPrice = gadget.gadgetPrice * load;
+        address user = msg.sender;
+
+        _burn(user, totalPrice);
+        gadget.gadgetLoad -= load;
+
+        emit LogMessage("Gadget redeemed successfully");
+    }
+}
